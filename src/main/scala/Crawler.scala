@@ -7,17 +7,26 @@ object Crawler {
     visitedBefore.exists(page => page.url == url)
 
   def crawling(url: URL): SiteMap = {
+
+    val root = Link(url = url)
+    val baseUrl = Http.baseURL(url)
+
+
     def _rec(visitedLinks: Set[Link],
              toVisitLinks: Set[Link],
              currentSitemap: SiteMap = Map.empty): SiteMap = {
 
-      if (toVisitLinks.isEmpty) currentSitemap
+      val unVistedLinks = toVisitLinks -- visitedLinks
+
+      if (unVistedLinks.isEmpty) currentSitemap
       else {
-        val unVistedLinks = toVisitLinks -- visitedLinks
+        if (unVistedLinks.head.url == "http://tomblomfield.com/archive/2016/1")
+          println("debug me")
+
         val link = unVistedLinks.head
         val html = Scraper.parseHtml(Scraper.getHTML(link.url))
 
-        val (assets, newLinksToVisit) = Scraper.allExtractor(html, link.baseUrl)
+        val (assets, newLinksToVisit) = Scraper.allExtractor(html, baseUrl)
 
         _rec(
           visitedLinks + link,
@@ -28,7 +37,6 @@ object Crawler {
 
     }
 
-    val root = Link(url = url, baseUrl = Http.baseURL(url))
     _rec(Set.empty[Link], Set(root))
   }
 }

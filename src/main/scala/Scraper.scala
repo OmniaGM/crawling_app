@@ -26,7 +26,7 @@ object Scraper {
           case "script" | "img" if element.attr("src").nonEmpty =>
             (assets + Asset(element.attr("src")), internalLinks)
           case "a" if isInternal(element.attr("href"), baseUrl) =>
-            (assets, internalLinks + Link(Http.reformateUrl(baseUrl, element.attr("href")), baseUrl))
+            (assets, internalLinks + Link(Http.reformateUrl(baseUrl, element.attr("href"))))
           case _ => (assets, internalLinks)
         }
     }

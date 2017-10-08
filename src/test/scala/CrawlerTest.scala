@@ -8,11 +8,11 @@ class CrawlerTest extends FlatSpec with Matchers  {
     val sitemap = Crawler.crawling(rootURL)
     sitemap.size shouldBe(4)
 
-    sitemap should contain key(Link(url = rootURL,baseUrl = baseUrl ))
+    sitemap should contain key(Link(url = rootURL ))
     sitemap should contain value (
-      Set( Link(s"$baseUrl/test1",s"$baseUrl"),
-             Link(s"$baseUrl/test2",s"$baseUrl")),
-        Set(Asset("https://jquery.com/jquery-wp-content/themes/jquery/css/base.css?v=1"))
+      Set(  Link(s"$baseUrl/test1"),
+            Link(s"$baseUrl/test2")),
+      Set(Asset("https://jquery.com/jquery-wp-content/themes/jquery/css/base.css?v=1"))
     )
   }
 
