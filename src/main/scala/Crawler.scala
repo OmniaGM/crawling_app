@@ -46,14 +46,28 @@ class Crawler {
       if (unVistedLinks.isEmpty) Future.successful(currentSitemap)
       else {
         val link = unVistedLinks.head
-        fetch(link).flatMap {
-          case (newUrisToVisit, assets) =>
-            _rec(
-              visitedLinks + link,
-              unVistedLinks.tail ++ newUrisToVisit -- visitedLinks,
-              currentSitemap + (link -> (newUrisToVisit, assets))
-            )
+
+        val stage:Future[Set[(URI.AbsoluteURI, (Set[URI.AbsoluteURI], Set[Asset]))]] =
+          Future.sequence(for (link <- unVistedLinks) yield {
+            fetch(link).map {
+              case (newUrisToVisit, assets) =>
+                (link -> (newUrisToVisit, assets))
+            }
+          })
+
+        stage.flatMap { st =>
+          val stageSitemap: SiteMap = st.toMap
+          val beenVisited = stageSitemap.keys
+          val newUnVisited = stageSitemap.values.flatMap(_._1).to[Set]
+
+          val visited = visitedLinks ++ beenVisited
+          _rec(
+            visited,
+            newUnVisited -- visited,
+            currentSitemap ++ stageSitemap
+          )
         }
+
       }
 
     }
