@@ -1,13 +1,18 @@
 import Http.URL
+import akka.actor.ActorSystem
+import akka.actor.Actor
+import akka.stream.ActorMaterializer
+import play.api.libs.ws.ahc.StandaloneAhcWSClient
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
-
 import collection.JavaConverters._
+import scala.concurrent.{ExecutionContext, Future}
 
 
 object Scraper {
-  def getHTML(url: URL): String = {
-    Jsoup.connect(url).get().toString()
+
+  def getHTML(url: URL, wsClient: StandaloneAhcWSClient)(implicit ec: ExecutionContext): Future[String] = {
+    wsClient.url(url).get().map { resp => resp.body }
   }
 
   def parseHtml(html:String): Element = {

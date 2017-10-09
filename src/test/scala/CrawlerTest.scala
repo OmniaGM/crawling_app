@@ -1,14 +1,23 @@
-import org.jsoup.Jsoup
 import org.scalatest._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
-class CrawlerTest extends FlatSpec with Matchers  {
+class CrawlerTest extends FlatSpec with Matchers with BeforeAndAfterAll {
+  val crawler = new Crawler()
+
+  override def afterAll = {
+    crawler.close()
+  }
+
   "Crawler" should "get sitemap of the page" in {
     val http = "http"
     val domain = "localhost:8080"
     val rootURI = URI.AbsoluteURI(http, domain, Seq.empty, None, None)
 
     val baseUrl = "http://localhost:8080"
-    val sitemap = Crawler.crawling(rootURI)
+    val sitemap = Await.result(crawler.crawling(rootURI), 5 second)
+
     sitemap.size shouldBe(4)
 
     sitemap should contain key(rootURI)

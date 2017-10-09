@@ -1,20 +1,22 @@
 import scala.util.Success
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object Application extends App{
   override def main(args: Array[String]) = {
-      if (args.length == 0) {
-        println("enter root url, should start with valid protocol")
-      }
-      val url = args(0)
+    if (args.length == 0) {
+      println("enter root url, should start with valid protocol")
+    }
+    val url = args(0)
 
-      println(s"Crawling $url ... ")
+    println(s"Crawling $url ... ")
+
     val uri: URI.AbsoluteURI = URI.parseRaw(url) match {
       case Success(x: URI.AbsoluteURI) => x
       case _ => sys.error("Invalid URL")
     }
 
-    val siteMap = Crawler.crawling(uri)
-
+    val crawler = new Crawler()
+    crawler.crawling(uri).foreach { siteMap =>
       println("Found " + siteMap.size + " internal page")
 
       for ((page,(internalLinks, assets)) <- siteMap) {
@@ -27,5 +29,7 @@ object Application extends App{
         printf("      ===>> and linked to: \n")
         linkedPages.map( printf(s"            %s\n", _))
       }
+      crawler.close()
+    }
   }
 }

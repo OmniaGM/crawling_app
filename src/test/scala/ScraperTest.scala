@@ -1,11 +1,29 @@
+import akka.actor.{Actor, ActorSystem}
+import akka.stream.ActorMaterializer
 import org.scalatest._
 import org.jsoup.Jsoup
+import play.api.libs.ws.ahc.StandaloneAhcWSClient
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
 
 class ScraperTest extends FlatSpec with Matchers  {
+
   "Scraper" should "get html of the page" in {
-    val html = Scraper.getHTML("http://localhost:8080/")
+    implicit val system = ActorSystem()
+    implicit val actor = Actor
+    implicit val materializer = ActorMaterializer()
+
+    val wsClient = StandaloneAhcWSClient()
+
+    val html =  Await.result(Scraper.getHTML("http://localhost:8080/", wsClient), 10 second)
     html should include("<head>")
     html should include("<body")
+
+    wsClient.close()
+    Await.result(system.terminate(), 1 second)
   }
 
   it should "parse html to return only the body element" in {
