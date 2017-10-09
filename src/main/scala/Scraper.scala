@@ -1,6 +1,7 @@
 import Http.URL
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
+
 import collection.JavaConverters._
 
 
@@ -12,22 +13,27 @@ object Scraper {
   def parseHtml(html:String): Element = {
     Jsoup.parseBodyFragment(html)
   }
-  private def isInternal(url: URL, baseUrl: URL): Boolean = {
-    url.contains(baseUrl) || url.startsWith("/")
-  }
 
-  def allExtractor(html: Element, baseUrl: URL): (Set[Asset], Set[Link]) = {
+  def allExtractor(html: Element, domain: URI.Domain): (Option[Base], Set[Asset], Set[Link]) = {
     val elements = html.getAllElements.asScala
-    elements.foldLeft((Set.empty[Asset], Set.empty[Link])) {
-      case ((assets, internalLinks), element) =>
+    elements.foldLeft[(Option[Base], Set[Asset], Set[Link])]((None, Set.empty, Set.empty)) {
+      case ((maybeBase, assets, internalLinks), element) =>
         element.tagName match {
+          case "base" if element.attr("href").nonEmpty =>
+            //ASSUMPTION: ignore if the html has 2 base tags which is invalid
+            val maybeBase = URI.parseRaw(element.attr("href")).toOption.map(Base)
+            (maybeBase, assets, internalLinks)
           case "link" if element.attr("href").nonEmpty =>
-            (assets + Asset(element.attr("href")), internalLinks)
+            (maybeBase, assets + Asset(element.attr("href")), internalLinks)
           case "script" | "img" if element.attr("src").nonEmpty =>
-            (assets + Asset(element.attr("src")), internalLinks)
-          case "a" if isInternal(element.attr("href"), baseUrl) =>
-            (assets, internalLinks + Link(Http.reformateUrl(baseUrl, element.attr("href"))))
-          case _ => (assets, internalLinks)
+            (maybeBase, assets + Asset(element.attr("src")), internalLinks)
+          case "a" =>
+            val maybeLink =
+              URI.parseRaw(element.attr("href")).toOption
+              .filter(uri => Http.isInternal(uri, domain) )
+              .map(Link)
+            (maybeBase, assets, internalLinks ++ maybeLink)
+          case _ => (maybeBase, assets, internalLinks)
         }
     }
   }

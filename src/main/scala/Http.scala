@@ -12,6 +12,18 @@ object Http {
     )
   }
 
+  def isInternal(uri: URI, mainDomain: URI.Domain): Boolean = uri match {
+    case URI.AbsoluteURI(_, domain, _, _, _) => domain == mainDomain
+    case URI.ProtocolRelativeURI(domain, _,_,_) => domain == mainDomain
+    case _ => true
+  }
+
+  def hostUrl(url:URL): URL = {
+    val (_, host, port, _) = Http.splitURL(url)
+    val portFormat = if (port == -1) "" else ":" + port
+    s"$host$portFormat"
+  }
+
   def baseURL(url:URL): URL = {
     val (protocol, host, port, path) = splitURL(url)
     val portFormat = if (port == -1) "" else ":" + port

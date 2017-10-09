@@ -23,6 +23,21 @@ class ScraperTest extends FlatSpec with Matchers  {
     el.child(0).tagName shouldBe("html")
   }
 
+
+  it should "extract base link" in {
+    val html = Jsoup.parse("""<html>
+                             |<head>
+                             |    <base href="http://example.com/x/"/>
+                             |</head>
+                             |</html>""")
+
+    val (base, _, _) = Scraper.allExtractor(html, domain = "http://example.com")
+    val baseUri = base.get.uri.asInstanceOf[URI.AbsoluteURI]
+    baseUri.scheme shouldBe "http"
+    base.get.uri.asInstanceOf[URI.AbsoluteURI].domain shouldBe "example.com"
+    base.get.uri.asInstanceOf[URI.AbsoluteURI].path shouldBe Seq("x")
+  }
+
   it should "extract assets links from the page" in {
     val html = Jsoup.parse("""<html>
                  |<head>
@@ -30,7 +45,7 @@ class ScraperTest extends FlatSpec with Matchers  {
                  |</head>
                  |</html>""")
 
-    val (assets, _) = Scraper.allExtractor(html, baseUrl = "http://example.com")
+    val (_, assets, _) = Scraper.allExtractor(html, domain = "http://example.com")
     assets.size shouldBe(1)
     assets should contain (Asset("http://example.com/stylex.css"))
   }
@@ -42,7 +57,7 @@ class ScraperTest extends FlatSpec with Matchers  {
                              |</head>
                              |</html>""")
 
-    val (assets, _) = Scraper.allExtractor(html, baseUrl = "http://example.com")
+    val (_, assets, _) = Scraper.allExtractor(html, domain = "http://example.com")
     assets.size shouldBe(1)
     assets should contain (Asset("http://example.com/js.js"))
   }
@@ -54,7 +69,7 @@ class ScraperTest extends FlatSpec with Matchers  {
                              |</body>
                              |</html>""")
 
-    val (assets, _) = Scraper.allExtractor(html, baseUrl = "http://example.com")
+    val (_, assets, _) = Scraper.allExtractor(html, domain = "http://example.com")
     assets.size shouldBe(1)
     assets should contain (Asset("http://example.com/img.png"))
   }
@@ -70,7 +85,7 @@ class ScraperTest extends FlatSpec with Matchers  {
                              |</body>
                              |</html>""")
 
-    val (assets, _) = Scraper.allExtractor(html, baseUrl = "http://example.com")
+    val (_, assets, _) = Scraper.allExtractor(html, domain = "http://example.com")
     assets.size shouldBe(3)
     assets should contain (Asset("http://example.com/stylex.css"))
     assets should contain (Asset("http://example.com/js.js"))
@@ -81,15 +96,17 @@ class ScraperTest extends FlatSpec with Matchers  {
     val html = Jsoup.parse("""<html>
                              |<body>
                              |    <a href="/internal/">internal</a>
-                             |    <a href="https://example.com">external</a>
+                             |    <a href="https://external.com">external</a>
                              |    <a href="http://google.com">internal</a>
                              |</body>
                              |</html>""")
 
-    val (_, links) = Scraper.allExtractor(html, baseUrl = "http://google.com")
+    val (_, _, links) = Scraper.allExtractor(html, domain = "google.com")
     links.size shouldBe(2)
-    links.toSeq(0).url shouldBe ("http://google.com/internal/")
-    links.toSeq(1).url shouldBe ("http://google.com")
+    val rootRelativeuri = links.toSeq(0).uri.asInstanceOf[URI.RootRelativeURI]
+    rootRelativeuri.path shouldBe Seq("internal")
+    val absoluteURI = links.toSeq(1).uri.asInstanceOf[URI.AbsoluteURI]
+    absoluteURI.toURL shouldBe ("http://google.com")
   }
 
   it should "extract all assets and anchor links from the page" in {
@@ -106,7 +123,7 @@ class ScraperTest extends FlatSpec with Matchers  {
                              |</body>
                              |</html>""")
 
-    val (assets, links) = Scraper.allExtractor(html, baseUrl = "http://google.com")
+    val (_, assets, links) = Scraper.allExtractor(html, domain = "google.com")
 
     assets.size shouldBe(3)
     assets should contain (Asset("http://example.com/stylex.css"))
@@ -114,7 +131,9 @@ class ScraperTest extends FlatSpec with Matchers  {
     assets should contain (Asset("http://example.com/img.png"))
 
     links.size shouldBe(2)
-    links.toSeq(0).url shouldBe ("http://google.com/internal/")
-    links.toSeq(1).url shouldBe ("http://google.com")
+    val rootRelativeuri = links.toSeq(0).uri.asInstanceOf[URI.RootRelativeURI]
+    rootRelativeuri.path shouldBe Seq("internal")
+    val absoluteURI = links.toSeq(1).uri.asInstanceOf[URI.AbsoluteURI]
+    absoluteURI.toURL shouldBe ("http://google.com")
   }
 }

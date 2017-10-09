@@ -1,42 +1,44 @@
-import Http.URL
-
 object Crawler {
-  type SiteMap = Map[Link, (Set[Link], Set[Asset])]
+  type SiteMap = Map[URI.AbsoluteURI, (Set[URI.AbsoluteURI], Set[Asset])]
 
-  private def hasBeenVisitedBefore(visitedBefore: Set[Link], url: URL): Boolean =
-    visitedBefore.exists(page => page.url == url)
+  def fetch(uri: URI.AbsoluteURI): (Set[URI.AbsoluteURI], Set[Asset]) = {
+    val html = Scraper.parseHtml(Scraper.getHTML(uri.toURL()))
+    val (maybeBase, assets, newLinksToVisit) = Scraper.allExtractor(html, uri.domain)
+    val base =
+      maybeBase
+        .map(base => URI.absolutify(base.uri, uri))
+        .getOrElse(uri)
 
-  def crawling(url: URL): SiteMap = {
+    val newUrisToVisit = newLinksToVisit
+      .map(link => URI.absolutify(link.uri, base))
 
-    val root = Link(url = url)
-    val baseUrl = Http.baseURL(url)
+    (newUrisToVisit, assets)
 
+  }
 
-    def _rec(visitedLinks: Set[Link],
-             toVisitLinks: Set[Link],
+  def crawling(uri: URI.AbsoluteURI): SiteMap = {
+    val domain = uri.domain
+
+    def _rec(visitedLinks: Set[URI.AbsoluteURI],
+             toVisitLinks: Set[URI.AbsoluteURI],
              currentSitemap: SiteMap = Map.empty): SiteMap = {
 
       val unVistedLinks = toVisitLinks -- visitedLinks
 
       if (unVistedLinks.isEmpty) currentSitemap
       else {
-        if (unVistedLinks.head.url == "http://tomblomfield.com/archive/2016/1")
-          println("debug me")
-
         val link = unVistedLinks.head
-        val html = Scraper.parseHtml(Scraper.getHTML(link.url))
-
-        val (assets, newLinksToVisit) = Scraper.allExtractor(html, baseUrl)
-
+        val (newUrisToVisit, assets) = fetch(link)
+        
         _rec(
           visitedLinks + link,
-          unVistedLinks.tail ++ newLinksToVisit -- visitedLinks,
-          currentSitemap + (link -> (newLinksToVisit, assets))
+          unVistedLinks.tail ++ newUrisToVisit -- visitedLinks,
+          currentSitemap + (link -> (newUrisToVisit, assets))
         )
       }
 
     }
 
-    _rec(Set.empty[Link], Set(root))
+    _rec(Set.empty[URI.AbsoluteURI], Set(uri))
   }
 }
