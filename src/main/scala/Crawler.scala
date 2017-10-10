@@ -20,56 +20,40 @@ class Crawler {
 
   def fetch(uri: URI.AbsoluteURI)(implicit ec: ExecutionContext): Future[(Set[URI.AbsoluteURI], Set[Asset])] = {
     Scraper.getHTML(uri.toURL(), wsClient).map { body =>
-      val html = Scraper.parseHtml(body)
-      val (maybeBase, assets, newLinksToVisit) = Scraper.allExtractor(html, uri.domain)
+      val (maybeBase, assets, links) = Scraper.allExtractor(Scraper.parseHtml(body), uri.domain)
       val base =
         maybeBase
           .map(base => URI.absolutify(base.uri, uri))
           .getOrElse(uri)
 
-      val newUrisToVisit = newLinksToVisit
-        .map(link => URI.absolutify(link.uri, base))
-
-      (newUrisToVisit, assets)
+      (links.map(link => URI.absolutify(link.uri, base)), assets)
     }
   }
 
   def crawling(uri: URI.AbsoluteURI)(implicit ec: ExecutionContext): Future[SiteMap] = {
-    val domain = uri.domain
-
-    def _rec(visitedLinks: Set[URI.AbsoluteURI],
-             toVisitLinks: Set[URI.AbsoluteURI],
+    def _rec(visitedUris: Set[URI.AbsoluteURI],
+             toVisitUris: Set[URI.AbsoluteURI],
              currentSitemap: SiteMap = Map.empty): Future[SiteMap] = {
 
-      val unVistedLinks = toVisitLinks -- visitedLinks
+      val unVistedLinks = toVisitUris -- visitedUris
 
       if (unVistedLinks.isEmpty) Future.successful(currentSitemap)
       else {
-        val link = unVistedLinks.head
+        Future.sequence(for (link <- unVistedLinks) yield {
+          fetch(link).map {
+            case (links, assets) =>
+              (link -> (links, assets))
+          }
+        }).flatMap { stage =>
+          val sitemap: SiteMap = stage.toMap
+          val visited = visitedUris ++ sitemap.keys
 
-        val stage:Future[Set[(URI.AbsoluteURI, (Set[URI.AbsoluteURI], Set[Asset]))]] =
-          Future.sequence(for (link <- unVistedLinks) yield {
-            fetch(link).map {
-              case (newUrisToVisit, assets) =>
-                (link -> (newUrisToVisit, assets))
-            }
-          })
-
-        stage.flatMap { st =>
-          val stageSitemap: SiteMap = st.toMap
-          val beenVisited = stageSitemap.keys
-          val newUnVisited = stageSitemap.values.flatMap(_._1).to[Set]
-
-          val visited = visitedLinks ++ beenVisited
           _rec(
             visited,
-            newUnVisited -- visited,
-            currentSitemap ++ stageSitemap
-          )
+            sitemap.values.flatMap(_._1).to[Set] -- visited,
+            currentSitemap ++ sitemap)
         }
-
       }
-
     }
 
     _rec(Set.empty[URI.AbsoluteURI], Set(uri))

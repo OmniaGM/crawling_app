@@ -1,7 +1,3 @@
-import Http.URL
-import akka.actor.ActorSystem
-import akka.actor.Actor
-import akka.stream.ActorMaterializer
 import play.api.libs.ws.ahc.StandaloneAhcWSClient
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
@@ -11,7 +7,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object Scraper {
 
-  def getHTML(url: URL, wsClient: StandaloneAhcWSClient)(implicit ec: ExecutionContext): Future[String] = {
+  def getHTML(url: Net.URL, wsClient: StandaloneAhcWSClient)(implicit ec: ExecutionContext): Future[String] = {
     wsClient.url(url).get().map { resp => resp.body }
   }
 
@@ -20,8 +16,9 @@ object Scraper {
   }
 
   def allExtractor(html: Element, domain: URI.Domain): (Option[Base], Set[Asset], Set[Link]) = {
-    val elements = html.getAllElements.asScala
-    elements.foldLeft[(Option[Base], Set[Asset], Set[Link])]((None, Set.empty, Set.empty)) {
+    html
+      .getAllElements.asScala
+      .foldLeft[(Option[Base], Set[Asset], Set[Link])]((None, Set.empty, Set.empty)) {
       case ((maybeBase, assets, internalLinks), element) =>
         element.tagName match {
           case "base" if element.attr("href").nonEmpty =>
@@ -35,7 +32,7 @@ object Scraper {
           case "a" =>
             val maybeLink =
               URI.parseRaw(element.attr("href")).toOption
-              .filter(uri => Http.isInternal(uri, domain) )
+              .filter(uri => Net.isInternal(uri, domain) )
               .map(Link)
             (maybeBase, assets, internalLinks ++ maybeLink)
           case _ => (maybeBase, assets, internalLinks)

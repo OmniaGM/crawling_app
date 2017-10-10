@@ -17,8 +17,6 @@ object Application extends App{
 
     val crawler = new Crawler()
     crawler.crawling(uri).foreach { siteMap =>
-      println("Found " + siteMap.size + " internal page")
-
       for ((page,(internalLinks, assets)) <- siteMap) {
         val assetsSrc = assets.map(_.src)
         val linkedPages = internalLinks.map(_.toURL)
@@ -29,6 +27,7 @@ object Application extends App{
         printf("      ===>> and linked to: \n")
         linkedPages.map( printf(s"            %s\n", _))
       }
+      println("*** Found " + siteMap.size + " internal page ***")
       crawler.close()
     }
   }

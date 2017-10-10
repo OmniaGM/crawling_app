@@ -15,7 +15,6 @@ class CrawlerTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val domain = "localhost:8080"
     val rootURI = URI.AbsoluteURI(http, domain, Seq.empty, None, None)
 
-    val baseUrl = "http://localhost:8080"
     val sitemap = Await.result(crawler.crawling(rootURI), 5 second)
 
     sitemap.size shouldBe(4)

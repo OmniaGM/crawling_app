@@ -19,7 +19,7 @@ object URI {
     query: Option[QueryString]
   ) extends URI {
 
-    def toURL(): Http.URL = {
+    def toURL(): Net.URL = {
       val schemeStr = s"$scheme://"
       val pathStr = path.map(s => s"/$s").mkString
       val pageStr = page.map(p => s"/$p").getOrElse("")
