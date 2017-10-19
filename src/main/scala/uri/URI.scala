@@ -1,7 +1,9 @@
+package uri
+
 import java.net.{URI => JavaURI}
 
 import scala.util.Try
-
+import scraper.Net
 sealed trait URI
 
 object URI {

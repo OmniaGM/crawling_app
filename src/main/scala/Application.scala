@@ -1,3 +1,4 @@
+import uri._
 import scala.util.Success
 import scala.concurrent.ExecutionContext.Implicits.global
 

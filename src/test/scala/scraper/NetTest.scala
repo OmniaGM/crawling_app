@@ -1,3 +1,6 @@
+package scraper
+
+import uri._
 import org.scalatest._
 
 class NetTest extends FlatSpec with Matchers  {

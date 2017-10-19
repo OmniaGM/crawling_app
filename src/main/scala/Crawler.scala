@@ -1,3 +1,5 @@
+import scraper._
+import uri.URI
 import akka.actor.{Actor, ActorSystem}
 import akka.stream.ActorMaterializer
 import play.api.libs.ws.ahc.StandaloneAhcWSClient
@@ -20,7 +22,7 @@ class Crawler {
 
   def fetch(uri: URI.AbsoluteURI)(implicit ec: ExecutionContext): Future[(Set[URI.AbsoluteURI], Set[Asset])] = {
     Scraper.getHTML(uri.toURL(), wsClient).map { body =>
-      val (maybeBase, assets, links) = Scraper.allExtractor(Scraper.parseHtml(body), uri.domain)
+      val (maybeBase, assets, links) = scraper.Scraper.allExtractor(scraper.Scraper.parseHtml(body), uri.domain)
       val base =
         maybeBase
           .map(base => URI.absolutify(base.uri, uri))

@@ -1,7 +1,11 @@
-import play.api.libs.ws.ahc.StandaloneAhcWSClient
+package scraper
+
+import uri.URI
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
-import collection.JavaConverters._
+import play.api.libs.ws.ahc.StandaloneAhcWSClient
+
+import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 

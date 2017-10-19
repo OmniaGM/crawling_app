@@ -1,10 +1,13 @@
+package uri
+
 import org.scalatest._
+
 import scala.util.Success
 
 
 class URITest extends FlatSpec with Matchers {
 
-  "URI" should "parse an absolute url with port" in {
+  "uri" should "parse an absolute url with port" in {
     val maybeURI = URI.parseRaw("http://localhost:8080")
 
     maybeURI shouldBe Success(

@@ -1,28 +1,35 @@
+package scraper
+
+import helper._
+import uri._
 import akka.actor.{Actor, ActorSystem}
 import akka.stream.ActorMaterializer
-import org.scalatest._
 import org.jsoup.Jsoup
+import org.scalatest._
 import play.api.libs.ws.ahc.StandaloneAhcWSClient
-
 import scala.concurrent.ExecutionContext.Implicits.global
+
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-
-class ScraperTest extends FlatSpec with Matchers  {
+class ScraperTest extends FlatSpec with Matchers  with BeforeAndAfterAll {
 
   "Scraper" should "get html of the page" in {
-    implicit val system = ActorSystem()
-    implicit val actor = Actor
-    implicit val materializer = ActorMaterializer()
+    val localHttpServer = LocalhostClient.server
+    localHttpServer.start
+    LocalhostClient.stubIndex
 
-    val wsClient = StandaloneAhcWSClient()
+    val url = s"http://${LocalhostClient.Host}:${LocalhostClient.Port}/"
 
-    val html =  Await.result(Scraper.getHTML("http://localhost:8080/", wsClient), 10 second)
+    val (system: ActorSystem, wsClient: StandaloneAhcWSClient) = setupWSclient
+
+    val html =  Await.result(Scraper.getHTML(url, wsClient), 10 second)
     html should include("<head>")
     html should include("<body")
 
     wsClient.close()
+    localHttpServer.stop
+
     Await.result(system.terminate(), 1 second)
   }
 
@@ -154,4 +161,13 @@ class ScraperTest extends FlatSpec with Matchers  {
     val absoluteURI = links.toSeq(1).uri.asInstanceOf[URI.AbsoluteURI]
     absoluteURI.toURL shouldBe ("http://google.com")
   }
+  def setupWSclient = {
+    implicit val system = ActorSystem()
+    implicit val actor = Actor
+    implicit val materializer = ActorMaterializer()
+
+    val wsClient = StandaloneAhcWSClient()
+    (system, wsClient)
+  }
 }
+

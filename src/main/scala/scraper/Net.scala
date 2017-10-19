@@ -1,3 +1,7 @@
+package scraper
+
+import uri.URI
+
 object Net {
   type URL = String
 
